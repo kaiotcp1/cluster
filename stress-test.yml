@@ -1,0 +1,11 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Aumenta gradualmente de 10 para 100 novos usuários por segundo durante 30s
+    - duration: 30
+      arrivalRate: 10
+      rampTo: 100
+scenarios:
+  - flow:
+      - get:
+          url: "/?number=42"
