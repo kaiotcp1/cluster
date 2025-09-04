@@ -1,30 +1,23 @@
 {
-  "name": "express-app-with-fibonacci-series",
+  "name": "nodejs-cluster-simplified",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
+  "description": "Um projeto simplificado para estudar Node.js Cluster e Child Process.",
+  "main": "src/cluster_initializer.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon",
-    "load-test": "loadtest -n 1000 -c 100 --rps 200 http://localhost:3000?number=20",
-    "artillery-stress": "artillery quick --count 10 -n 20 http://localhost:3000?number=20",
-    "artillery-scenario": "artillery run stress-test.yml"
+    "start": "node src/cluster_initializer.js",
+    "dev": "nodemon src/cluster_initializer.js",
+    "load-test": "loadtest -n 1000 -c 100 --rps 200 http://localhost:3000?number=40",
+    "artillery-stress": "artillery run stress-test.yml"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0",
-    "loadtest": "^8.2.0"
+    "express": "^4.19.2"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.0",
-    "artillery": "^2.0.24",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.9.2"
+    "artillery": "^2.0.12",
+    "loadtest": "^5.2.0",
+    "nodemon": "^3.1.4"
   }
 }

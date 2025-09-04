@@ -3,8 +3,8 @@ config:
   phases:
     # Aumenta gradualmente de 10 para 100 novos usuários por segundo durante 30s
     - duration: 30
-      arrivalRate: 10
-      rampTo: 100
+      arrivalRate: 20
+      rampTo: 1000
 scenarios:
   - flow:
       - get:
