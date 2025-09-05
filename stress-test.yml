@@ -1,11 +1,17 @@
 config:
   target: "http://localhost:3000"
   phases:
-    # Aumenta gradualmente de 10 para 100 novos usuários por segundo durante 30s
-    - duration: 30
-      arrivalRate: 20
-      rampTo: 1000
+    # Simula 5 novos usuários chegando a cada segundo, durante 20 segundos.
+    # Isso resultará em 100 uploads (5 * 20).
+    - duration: 20
+      arrivalRate: 5
 scenarios:
-  - flow:
-      - get:
-          url: "/?number=42"
+  - name: "Upload de Imagem"
+    flow:
+      - post:
+          url: "/upload"
+          # Esta é a parte chave: define a requisição como multipart/form-data
+          multipart:
+            # Cada item aqui é uma "parte" do formulário
+            - name: "image" # O nome do campo, deve ser o mesmo que no multer ('image')
+              path: "" # O caminho para o arquivo que será enviado

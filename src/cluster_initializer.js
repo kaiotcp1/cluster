@@ -4,53 +4,72 @@ const cluster = require('cluster');
 const os = require('os');
 const express = require('express');
 const { fork } = require('child_process');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
+const rawDir = path.join(__dirname, '../uploads/raw');
+const processedDir = path.join(__dirname, '../uploads/processed');
+
+fs.mkdirSync(rawDir, { recursive: true });
+fs.mkdirSync(processedDir, { recursive: true });
+
+const upload = multer({ dest: 'uploads/raw/' });
 const totalCPUs = os.cpus().length;
 
 // -----------------------------------------------------------------
-// LÓGICA DO PROCESSO MESTRE (O GERENTE GERAL)
+// LÓGICA DO PROCESSO MESTRE
 // -----------------------------------------------------------------
 if (cluster.isPrimary) {
-  console.log(`[Gerente PID: ${process.pid}] Está online.`);
+  console.log(`[Primary PID: ${process.pid}] Está online.`);
 
-  // O processo mestre contrata "Especialista em Cálculo" (processo filho) e o mantém pronto.
-  const calculator = fork('./src/calculator.js');
-  console.log(`[Gerente] Contratou um Calculador com PID: ${calculator.pid}`);
+  // O processo mestre contrata "Especialista em Imagens.
+  const imageWorker = fork('./src/image_worker.js');
+  console.log(`[Primary] Contratou um Especialista em Imagens com PID: ${imageWorker.pid}`);
 
-  // O processo mestre fica ouvindo se o Especialista terminou algum trabalho.
-  calculator.on('message', (message) => {
-    console.log(`[Gerente] ✅ O Calculador (PID: ${message.pid}) terminou o trabalho! Resultado: ${message.result}`);
-  });
+  try {
+    // O processo mestre fica ouvindo se o Especialista terminou algum trabalho.
+    imageWorker.on('message', (message) => {
+      console.log(`[Primary] ✅ O Especialista (PID: ${message.pid}) terminou o trabalho na imagem '${message.originalName}'. Status: ${message.status}`);
+    });
 
-  // 2. O processo mestre contrata "Atendentes" (workers do cluster) para lidar com os clientes.
-  // Ele cria um atendente para cada núcleo de CPU.
-  console.log(`[Gerente] Contratando ${totalCPUs} Atendentes (workers web)...`);
-  for (let i = 0; i < totalCPUs; i++) {
-    cluster.fork();
+    // 2. O processo mestre contrata "Atendentes" (workers do cluster) para lidar com os clientes.
+    // Ele cria um atendente para cada núcleo de CPU.
+    console.log(`[Primary] Contratando ${totalCPUs} Atendentes (workers web)...`);
+    for (let i = 0; i < totalCPUs; i++) {
+      cluster.fork();
+    }
+
+    // 3. O processo mestre atua como um ROTEADOR. Ele ouve as mensagens dos Atendentes.
+    // A função `setupPrimary` garante que a lógica de escuta seja adicionada a todos os workers.
+    cluster.on('message', (worker, message) => {
+      console.log(`[Primary] O Atendente (PID: ${worker.process.pid}) enviou a imagem: ${message.originalName}`);
+      // O processo mestre passa a tarefa para o Especialista de Cálculo.
+      imageWorker.send(message);
+    });
+
+  } catch (error) {
+    console.error(`[Primary] Erro ao iniciar o cluster: ${error.message}`);
+
   }
-
-  // 3. O processo mestre atua como um ROTEADOR. Ele ouve as mensagens dos Atendentes.
-  // A função `setupPrimary` garante que a lógica de escuta seja adicionada a todos os workers.
-  cluster.on('message', (worker, message) => {
-    console.log(`[Gerente] O Atendente (PID: ${worker.process.pid}) enviou uma tarefa: calcular Fibonacci de ${message.num}`);
-
-    // O processo mestre passa a tarefa para o Especialista de Cálculo.
-    calculator.send(message.num);
-  });
 } else {
   const app = express();
   const PORT = 3000;
 
-  app.get('/', (req, res) => {
-    const number = parseInt(req.query.number);
-    console.log(`[Atendente PID: ${process.pid}] Recebeu uma requisição para o número ${number}.`);
+  app.post('/upload', upload.single('image'), (req, res) => {
 
-    // O Atendente NÃO faz o trabalho pesado.
+    if (!req.file) {
+      return res.status(400).send('Nenhuma imagem enviada.');
+    };
+
+
     // Ele apenas envia uma mensagem para o processo mestre com a tarefa.
-    process.send({ num: number });
-
+    process.send({
+      originalPath: req.file.path,
+      originalName: req.file.originalname
+    });
     // E responde IMEDIATAMENTE para o cliente.
-    res.send("<h3>Sua requisição foi recebida! O resultado aparecerá no console do servidor.</h3>");
+    res.status(202).json({ message: "Sua imagem foi recebida e está sendo processada!" });
   });
 
   app.listen(PORT, () => {

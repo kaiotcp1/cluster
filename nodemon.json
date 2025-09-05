@@ -4,7 +4,9 @@
   ],
   "ext": "js",
   "ignore": [
-    "node_modules"
+    "node_modules",
+    "test-data",
+    "uploads"
   ],
   "exec": "node src/cluster_initializer.js"
 }
